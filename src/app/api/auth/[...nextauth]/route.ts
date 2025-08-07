@@ -1,13 +1,13 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-// Enhanced configuration with better error handling
+// Simple configuration for dev/testing - suppress TypeScript errors
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const authOptions: any = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "dummy",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "dummy",
     }),
   ],
   callbacks: {
@@ -25,10 +25,8 @@ const authOptions: any = {
     },
   },
   pages: {
-    signIn: '/login',
+    signIn: '/auth/signin',
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
 };
 
 // @ts-expect-error - Suppress NextAuth v4 typing issues for dev deployment
