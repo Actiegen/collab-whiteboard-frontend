@@ -11,8 +11,8 @@ interface OnlineUser {
 
 interface OnlineUsersProps {
   roomId: string;
-  currentUser: any;
-  onlineUsers?: any[];
+  currentUser: { email?: string; name?: string } | null;
+  onlineUsers?: OnlineUser[];
 }
 
 export function OnlineUsers({ roomId, currentUser, onlineUsers: propOnlineUsers }: OnlineUsersProps) {

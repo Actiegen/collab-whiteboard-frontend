@@ -6,15 +6,14 @@ import '@tldraw/tldraw/tldraw.css';
 
 interface TldrawCanvasProps {
   roomId: string;
-  currentUser: any;
+  currentUser: { email?: string; name?: string } | null;
   isConnected: boolean;
 }
 
-export function TldrawCanvas({ roomId, currentUser, isConnected }: TldrawCanvasProps) {
+export function TldrawCanvas({ roomId, isConnected }: TldrawCanvasProps) {
   // Use tldraw's built-in sync with our room ID
   const store = useSyncDemo({ 
-    roomId: `collab-whiteboard-${roomId}`,
-    userName: currentUser?.name || currentUser?.email || 'Anonymous'
+    roomId: `collab-whiteboard-${roomId}`
   });
 
   if (!isConnected) {
@@ -31,8 +30,6 @@ export function TldrawCanvas({ roomId, currentUser, isConnected }: TldrawCanvasP
     <div className="h-full">
       <Tldraw 
         store={store}
-        // Optional: Add persistence key for local storage
-        persistenceKey={`whiteboard-${roomId}`}
       />
     </div>
   );

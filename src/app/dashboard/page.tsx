@@ -3,9 +3,33 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { LoginButton } from '@/components/auth/LoginButton';
+import Image from 'next/image';
 import { OnlineUsers } from '@/components/chat/OnlineUsers';
 import { TldrawCanvas } from '@/components/whiteboard/TldrawCanvas';
+
+// TypeScript interfaces
+interface ChatMessage {
+  type: 'chat' | 'system';
+  username?: string;
+  content: string;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
+  timestamp: string;
+}
+
+interface OnlineUser {
+  user_id: string;
+  username: string;
+  is_online: boolean;
+  timestamp: string;
+}
+
+interface Room {
+  id: string;
+  name: string;
+  created_at: string;
+}
 
 // File Preview Component
 const FilePreview = ({ fileUrl, fileName, fileType }: { 
@@ -62,10 +86,12 @@ const FilePreview = ({ fileUrl, fileName, fileType }: {
           {/* Preview */}
           {isImage && (
             <div className="mt-2">
-              <img 
+              <Image 
                 src={fileUrl} 
                 alt={fileName}
-                className="max-w-full max-h-32 rounded border"
+                width={200}
+                height={128}
+                className="max-w-full max-h-32 rounded border object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
@@ -106,14 +132,14 @@ export default function Dashboard() {
   const router = useRouter();
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
   const [messages, setMessages] = useState<string[]>([]);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState('test');
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -161,7 +187,7 @@ export default function Dashboard() {
         }]);
               } else if (data.type === 'chat_message') {
           console.log('Processing chat message:', data);
-          const newMessage = {
+          const newMessage: ChatMessage = {
             type: 'chat',
             username: data.message?.username || data.username,
             content: data.message?.content || data.content,
@@ -315,13 +341,7 @@ export default function Dashboard() {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+
 
   const loadRooms = async () => {
     try {
@@ -438,9 +458,11 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 {user?.image && (
-                  <img 
+                  <Image 
                     src={user.image} 
                     alt={user.name || 'User'} 
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full"
                   />
                 )}
@@ -470,7 +492,7 @@ export default function Dashboard() {
             <div className="h-[600px]">
               <TldrawCanvas
                 roomId={selectedRoom}
-                currentUser={user}
+                currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null}
                 isConnected={connectionStatus === 'Connected'}
               />
             </div>
@@ -484,7 +506,7 @@ export default function Dashboard() {
             
             {/* Online Users */}
             <div className="p-4 border-b">
-              <OnlineUsers roomId={selectedRoom} currentUser={user} onlineUsers={onlineUsers} />
+              <OnlineUsers roomId={selectedRoom} currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null} onlineUsers={onlineUsers} />
             </div>
             
             {/* Messages */}
@@ -510,7 +532,7 @@ export default function Dashboard() {
                       ) : (
                         <div>
                           <span><strong>{message.username}:</strong> {message.content}</span>
-                          {message.file_url && (
+                          {message.file_url && message.file_name && message.file_type && (
                             <div className="mt-2 ml-4">
                               <FilePreview 
                                 fileUrl={message.file_url}

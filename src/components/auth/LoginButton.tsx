@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
+import Image from 'next/image';
 
 export function LoginButton() {
   const { isAuthenticated, isLoading, signIn, signOut, user } = useAuth();
@@ -18,9 +19,11 @@ export function LoginButton() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           {user?.image && (
-            <img 
+            <Image 
               src={user.image} 
               alt={user.name || 'User'} 
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-full"
             />
           )}
