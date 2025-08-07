@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { OnlineUsers } from '@/components/chat/OnlineUsers';
 import { TldrawCanvas } from '@/components/whiteboard/TldrawCanvas';
+import { FilePreview } from '@/components/chat/FilePreview';
 
 // TypeScript interfaces
 interface ChatMessage {
@@ -31,101 +32,7 @@ interface Room {
   created_at: string;
 }
 
-// File Preview Component
-const FilePreview = ({ fileUrl, fileName, fileType }: { 
-  fileUrl: string; 
-  fileName: string; 
-  fileType: string; 
-}) => {
-  console.log('FilePreview component called with:', { fileUrl, fileName, fileType });
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('text')) return '📝';
-    if (type.includes('word') || type.includes('document')) return '📄';
-    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
-    if (type.includes('powerpoint') || type.includes('presentation')) return '📊';
-    return '📎';
-  };
 
-  const isImage = fileType.startsWith('image/');
-  const isPdf = fileType.includes('pdf');
-  const isText = fileType.includes('text');
-
-  return (
-    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-      <div className="flex items-start gap-3">
-        {/* File Icon */}
-        <div className="text-2xl flex-shrink-0">
-          {getFileIcon(fileType)}
-        </div>
-        
-        {/* File Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {fileName}
-              </p>
-              <p className="text-xs text-gray-500">
-                {fileType}
-              </p>
-            </div>
-            
-            {/* Download Button */}
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Download
-            </a>
-          </div>
-          
-          {/* Preview */}
-          {isImage && (
-            <div className="mt-2">
-              <Image 
-                src={fileUrl} 
-                alt={fileName}
-                width={200}
-                height={128}
-                className="max-w-full max-h-32 rounded border object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
-          )}
-          
-          {isPdf && (
-            <div className="mt-2">
-              <iframe
-                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="w-full h-32 border rounded"
-                title={fileName}
-              />
-            </div>
-          )}
-          
-          {isText && (
-            <div className="mt-2">
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:text-blue-800 underline"
-              >
-                View text content
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function Dashboard() {
   const { isAuthenticated, user, signOut } = useAuth();

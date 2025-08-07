@@ -2,7 +2,6 @@
 
 import { Tldraw } from '@tldraw/tldraw';
 import { useSyncDemo } from '@tldraw/sync';
-import '@tldraw/tldraw/tldraw.css';
 
 interface TldrawCanvasProps {
   roomId: string;
