@@ -1,0 +1,597 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { LoginButton } from '@/components/auth/LoginButton';
+import { OnlineUsers } from '@/components/chat/OnlineUsers';
+import { TldrawCanvas } from '@/components/whiteboard/TldrawCanvas';
+
+// File Preview Component
+const FilePreview = ({ fileUrl, fileName, fileType }: { 
+  fileUrl: string; 
+  fileName: string; 
+  fileType: string; 
+}) => {
+  console.log('FilePreview component called with:', { fileUrl, fileName, fileType });
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) return '🖼️';
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('text')) return '📝';
+    if (type.includes('word') || type.includes('document')) return '📄';
+    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
+    if (type.includes('powerpoint') || type.includes('presentation')) return '📊';
+    return '📎';
+  };
+
+  const isImage = fileType.startsWith('image/');
+  const isPdf = fileType.includes('pdf');
+  const isText = fileType.includes('text');
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+      <div className="flex items-start gap-3">
+        {/* File Icon */}
+        <div className="text-2xl flex-shrink-0">
+          {getFileIcon(fileType)}
+        </div>
+        
+        {/* File Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {fileName}
+              </p>
+              <p className="text-xs text-gray-500">
+                {fileType}
+              </p>
+            </div>
+            
+            {/* Download Button */}
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Download
+            </a>
+          </div>
+          
+          {/* Preview */}
+          {isImage && (
+            <div className="mt-2">
+              <img 
+                src={fileUrl} 
+                alt={fileName}
+                className="max-w-full max-h-32 rounded border"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+          
+          {isPdf && (
+            <div className="mt-2">
+              <iframe
+                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                className="w-full h-32 border rounded"
+                title={fileName}
+              />
+            </div>
+          )}
+          
+          {isText && (
+            <div className="mt-2">
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                View text content
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function Dashboard() {
+  const { isAuthenticated, user, signOut } = useAuth();
+  const router = useRouter();
+  const [connectionStatus, setConnectionStatus] = useState('Disconnected');
+  const [messages, setMessages] = useState<string[]>([]);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState('test');
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  const connectWebSocket = () => {
+    if (!isAuthenticated || !user || isConnecting) {
+      console.log('User not authenticated or already connecting');
+      return;
+    }
+    
+    setIsConnecting(true);
+    const userId = user.email || '975fb39b-a6b1-4a93-a093-bcd380125d85';
+    const wsUrl = `wss://collab-whiteboard-backend-570131883677.us-east1.run.app/ws/${selectedRoom}/${userId}`;
+    
+    console.log('Connecting to:', wsUrl);
+    setConnectionStatus('Connecting...');
+    
+    const websocket = new WebSocket(wsUrl);
+    
+    websocket.onopen = () => {
+      console.log('WebSocket connected!');
+      setConnectionStatus('Connected');
+      setIsConnecting(false);
+      setMessages(prev => [...prev, '✅ Connected to backend']);
+    };
+    
+    websocket.onmessage = (event) => {
+      console.log('Received message:', event.data);
+      const data = JSON.parse(event.data);
+      setMessages(prev => [...prev, `📨 Received: ${event.data}`]);
+      
+      // Debug: Log the structure of the data
+      console.log('Parsed data structure:', JSON.stringify(data, null, 2));
+      
+      // Handle different message types
+      if (data.type === 'room_joined') {
+        setChatMessages(prev => [...prev, {
+          type: 'system',
+          content: data.message,
+          timestamp: new Date().toISOString()
+        }]);
+              } else if (data.type === 'chat_message') {
+          console.log('Processing chat message:', data);
+          const newMessage = {
+            type: 'chat',
+            username: data.message?.username || data.username,
+            content: data.message?.content || data.content,
+            file_url: data.message?.file_url,
+            file_name: data.message?.file_name,
+            file_type: data.message?.file_type,
+            timestamp: new Date().toISOString()
+          };
+          console.log('Created new message object:', newMessage);
+          
+          // Debug: Check if file data exists
+          if (newMessage.file_url) {
+            console.log('✅ File data found in message:', {
+              file_url: newMessage.file_url,
+              file_name: newMessage.file_name,
+              file_type: newMessage.file_type
+            });
+          } else {
+            console.log('❌ No file data in message');
+          }
+          
+          setChatMessages(prev => [...prev, newMessage]);
+        } else if (data.type === 'whiteboard_action') {
+          console.log('Processing whiteboard action:', data);
+          // Handle whiteboard actions - this will be processed by the canvas component
+          // The canvas component will listen to these events
+        } else if (data.type === 'presence') {
+          console.log('Processing presence update:', data);
+          // Handle presence updates (user online/offline)
+          if (data.users) {
+            setOnlineUsers(data.users);
+          }
+        } else if (data.type === 'user_joined') {
+          console.log('User joined:', data);
+          setOnlineUsers(prev => {
+            const newUser = {
+              user_id: data.user_id,
+              username: data.username,
+              is_online: true,
+              timestamp: new Date().toISOString()
+            };
+            // Check if user already exists
+            const exists = prev.find(u => u.user_id === data.user_id);
+            if (exists) {
+              return prev.map(u => u.user_id === data.user_id ? newUser : u);
+            } else {
+              return [...prev, newUser];
+            }
+          });
+        } else if (data.type === 'user_left') {
+          console.log('User left:', data);
+          setOnlineUsers(prev => prev.filter(u => u.user_id !== data.user_id));
+        } else {
+          console.log('Unknown message type:', data.type);
+        }
+    };
+    
+    websocket.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
+      console.log('WebSocket close wasClean:', event.wasClean);
+      console.log('WebSocket close target:', event.target);
+      setConnectionStatus('Disconnected');
+      setIsConnecting(false);
+      setWs(null);
+      
+      setMessages(prev => [...prev, `❌ Disconnected: ${event.code} - ${event.reason}`]);
+    };
+    
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setConnectionStatus('Error');
+      setIsConnecting(false);
+      setMessages(prev => [...prev, `🚨 Error: ${error}`]);
+    };
+    
+    setWs(websocket);
+  };
+
+  const disconnectWebSocket = () => {
+    if (ws) {
+      ws.close();
+      setWs(null);
+    }
+  };
+
+  const sendChatMessage = () => {
+    if (ws && ws.readyState === WebSocket.OPEN && inputMessage.trim()) {
+      const message = {
+        type: 'chat_message',
+        content: inputMessage.trim(),
+        message_type: 'text'
+      };
+      ws.send(JSON.stringify(message));
+      setMessages(prev => [...prev, `📤 Sent: ${JSON.stringify(message)}`]);
+      setInputMessage('');
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !ws || ws.readyState !== WebSocket.OPEN || !isAuthenticated || !user) return;
+
+    setIsUploading(true);
+    try {
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('user_id', user.email || '975fb39b-a6b1-4a93-a093-bcd380125d85');
+      formData.append('room_id', selectedRoom);
+
+      // Upload file
+      const response = await fetch('https://collab-whiteboard-backend-570131883677.us-east1.run.app/api/v1/files/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const fileData = await response.json();
+      console.log('File uploaded:', fileData);
+
+      // Send file message via WebSocket
+      const message = {
+        type: 'chat_message',
+        content: `📎 ${file.name}`,
+        message_type: 'file',
+        file_url: fileData.download_url,
+        file_name: file.name,
+        file_type: file.type,
+        username: user.name || user.email || 'Anonymous'
+      };
+
+      ws.send(JSON.stringify(message));
+      setMessages(prev => [...prev, `📤 Sent file: ${file.name}`]);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      setMessages(prev => [...prev, `🚨 Upload failed: ${error}`]);
+    } finally {
+      setIsUploading(false);
+      // Clear the input
+      event.target.value = '';
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      sendChatMessage();
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const loadRooms = async () => {
+    try {
+      const response = await fetch('https://collab-whiteboard-backend-570131883677.us-east1.run.app/api/v1/chat/rooms/');
+      if (response.ok) {
+        const roomsData = await response.json();
+        setRooms(roomsData);
+        if (roomsData.length > 0) {
+          setSelectedRoom(roomsData[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load rooms:', error);
+    }
+  };
+
+  // Load rooms on component mount
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  // Clear chat messages when room changes
+  useEffect(() => {
+    if (isAuthenticated && user && selectedRoom && selectedRoom !== 'test') {
+      console.log('Room changed, clearing messages');
+      setChatMessages([]);
+      setMessages([]);
+    }
+  }, [selectedRoom, isAuthenticated, user]);
+
+  // Show loading if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Collab Whiteboard
+            </h1>
+            
+            {/* Room Selection */}
+            <div className="flex items-center gap-4">
+              <select
+                value={selectedRoom}
+                onChange={(e) => setSelectedRoom(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {rooms.length === 0 ? (
+                  <option value="test">Loading rooms...</option>
+                ) : (
+                  rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name || room.id}
+                    </option>
+                  ))
+                )}
+              </select>
+              <button
+                onClick={loadRooms}
+                className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Load Rooms
+              </button>
+            </div>
+            
+            {/* Connection Status */}
+            <div className="flex items-center gap-4">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                connectionStatus === 'Connected' ? 'bg-green-100 text-green-800' :
+                connectionStatus === 'Connecting...' ? 'bg-yellow-100 text-yellow-800' :
+                connectionStatus === 'Error' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {connectionStatus === 'Connected' ? `🟢 ${selectedRoom}` :
+                 connectionStatus === 'Connecting...' ? '🟡 Connecting...' :
+                 connectionStatus === 'Error' ? '🔴 Error' :
+                 '⚪ Disconnected'}
+              </span>
+              <button
+                onClick={() => {
+                  console.log('Connect clicked');
+                  connectWebSocket();
+                }}
+                disabled={isConnecting || connectionStatus === 'Connected'}
+                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:bg-gray-400"
+              >
+                Connect
+              </button>
+              <button
+                onClick={() => {
+                  console.log('Disconnect clicked');
+                  disconnectWebSocket();
+                }}
+                disabled={!ws || ws.readyState === WebSocket.CLOSED}
+                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:bg-gray-400"
+              >
+                Disconnect
+              </button>
+            </div>
+            
+            {/* Auth */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {user?.image && (
+                  <img 
+                    src={user.image} 
+                    alt={user.name || 'User'} 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <span className="text-sm font-medium text-gray-700">
+                  {user?.name || user?.email}
+                </span>
+              </div>
+              <button
+                onClick={signOut}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Whiteboard */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-semibold">Collaborative Whiteboard</h2>
+            </div>
+            <div className="h-[600px]">
+              <TldrawCanvas
+                roomId={selectedRoom}
+                currentUser={user}
+                isConnected={connectionStatus === 'Connected'}
+              />
+            </div>
+          </div>
+
+          {/* Chat */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-semibold">Chat</h2>
+            </div>
+            
+            {/* Online Users */}
+            <div className="p-4 border-b">
+              <OnlineUsers roomId={selectedRoom} currentUser={user} onlineUsers={onlineUsers} />
+            </div>
+            
+            {/* Messages */}
+            <div className="p-4 h-96 overflow-y-auto">
+              {chatMessages.length === 0 ? (
+                <div className="text-center text-gray-500">
+                  {connectionStatus === 'Connected' ? (
+                    <p className="text-sm">No messages yet. Start chatting!</p>
+                  ) : connectionStatus === 'Connecting...' ? (
+                    <p className="text-sm">🟡 Connecting to room...</p>
+                  ) : (
+                    <p className="text-sm">⚪ Click Connect to join the room</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {chatMessages.map((message, index) => (
+                    <div key={index} className={`text-sm ${
+                      message.type === 'system' ? 'text-blue-600 italic' : 'text-gray-800'
+                    }`}>
+                      {message.type === 'system' ? (
+                        <span>🔔 {message.content}</span>
+                      ) : (
+                        <div>
+                          <span><strong>{message.username}:</strong> {message.content}</span>
+                          {message.file_url && (
+                            <div className="mt-2 ml-4">
+                              <FilePreview 
+                                fileUrl={message.file_url}
+                                fileName={message.file_name}
+                                fileType={message.file_type}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t">
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  disabled={!ws || ws.readyState !== WebSocket.OPEN}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+                <button
+                  onClick={sendChatMessage}
+                  disabled={!ws || ws.readyState !== WebSocket.OPEN || !inputMessage.trim()}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                >
+                  Send
+                </button>
+              </div>
+              
+              {/* File Upload */}
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    disabled={!ws || ws.readyState !== WebSocket.OPEN || isUploading}
+                    className="hidden"
+                    accept="image/*,application/pdf,text/plain,.doc,.docx"
+                  />
+                  <span className={`px-3 py-2 text-sm rounded border ${
+                    !ws || ws.readyState !== WebSocket.OPEN || isUploading
+                      ? 'bg-gray-100 text-gray-400 border-gray-200'
+                      : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+                  }`}>
+                    {isUploading ? '📤 Uploading...' : '📎 Attach File'}
+                  </span>
+                </label>
+                {isUploading && (
+                  <span className="text-sm text-gray-500">Uploading...</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Debug Log */}
+        <div className="bg-white rounded-lg shadow p-4 mt-6">
+          <h2 className="text-lg font-semibold mb-4">Debug Log</h2>
+          <div className="bg-gray-50 rounded p-4 h-32 overflow-y-auto">
+            {messages.length === 0 ? (
+              <p className="text-gray-500 text-sm">No debug messages yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {messages.map((message, index) => (
+                  <div key={index} className="text-xs font-mono">
+                    {message}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
