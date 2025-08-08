@@ -20,8 +20,11 @@ export function OnlineUsers({ roomId, currentUser, onlineUsers: propOnlineUsers 
 
   useEffect(() => {
     if (propOnlineUsers && propOnlineUsers.length > 0) {
-      // Use the online users from props
-      setOnlineUsers(propOnlineUsers);
+      // Use the online users from props, but deduplicate by user_id
+      const uniqueUsers = propOnlineUsers.filter((user, index, self) => 
+        index === self.findIndex(u => u.user_id === user.user_id)
+      );
+      setOnlineUsers(uniqueUsers);
     } else {
       // Fallback to showing just current user
       setOnlineUsers([
@@ -40,17 +43,17 @@ export function OnlineUsers({ roomId, currentUser, onlineUsers: propOnlineUsers 
 
   return (
     <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="text-lg font-semibold mb-3">Online Users</h3>
+      <h3 className="text-lg font-semibold mb-3 text-gray-900">Online Users</h3>
       <div className="space-y-2">
         {onlineUsers.length === 0 ? (
-          <p className="text-gray-500 text-sm">No users online</p>
+          <p className="text-gray-600 text-sm">No users online</p>
         ) : (
-          onlineUsers.map((user) => (
-            <div key={user.user_id} className="flex items-center gap-2">
+          onlineUsers.map((user, index) => (
+            <div key={`${user.user_id}-${index}`} className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${
                 user.is_online ? 'bg-green-500' : 'bg-gray-400'
               }`} />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-900">
                 {user.username}
                 {user.user_id === currentUser?.email && ' (You)'}
               </span>
@@ -59,7 +62,7 @@ export function OnlineUsers({ roomId, currentUser, onlineUsers: propOnlineUsers 
         )}
         {showCurrentUser && (
           <div className="pt-2 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600">
               Room: {roomId}
             </p>
           </div>

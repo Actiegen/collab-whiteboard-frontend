@@ -401,7 +401,7 @@ export default function Dashboard() {
               <select
                 value={selectedRoom}
                 onChange={(e) => setSelectedRoom(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               >
                 {rooms.length === 0 ? (
                   <option value="test">Loading rooms...</option>
@@ -468,7 +468,7 @@ export default function Dashboard() {
                     className="w-8 h-8 rounded-full"
                   />
                 )}
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-gray-900">
                   {user?.name || user?.email}
                 </span>
               </div>
@@ -489,7 +489,7 @@ export default function Dashboard() {
           {/* Whiteboard */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow">
             <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold">Collaborative Whiteboard</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Room: {selectedRoom}</h2>
             </div>
             <div className="h-[600px]">
               <TldrawCanvas
@@ -503,7 +503,7 @@ export default function Dashboard() {
           {/* Chat */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold">Chat</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
             </div>
             
             {/* Online Users */}
@@ -526,7 +526,7 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-2">
                   {chatMessages.map((message, index) => (
-                    <div key={index} className={`text-sm ${
+                    <div key={`chat-${index}-${message.timestamp || Date.now()}`} className={`text-sm ${
                       message.type === 'system' ? 'text-blue-600 italic' : 'text-gray-800'
                     }`}>
                       {message.type === 'system' ? (
@@ -600,14 +600,14 @@ export default function Dashboard() {
 
         {/* Debug Log */}
         <div className="bg-white rounded-lg shadow p-4 mt-6">
-          <h2 className="text-lg font-semibold mb-4">Debug Log</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Debug Log</h2>
           <div className="bg-gray-50 rounded p-4 h-32 overflow-y-auto">
             {messages.length === 0 ? (
-              <p className="text-gray-500 text-sm">No debug messages yet.</p>
+              <p className="text-gray-600 text-sm">No debug messages yet.</p>
             ) : (
               <div className="space-y-1">
                 {messages.map((message, index) => (
-                  <div key={index} className="text-xs font-mono">
+                  <div key={`debug-${index}`} className="text-xs font-mono text-gray-800">
                     {message}
                   </div>
                 ))}
