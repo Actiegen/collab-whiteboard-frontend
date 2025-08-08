@@ -458,53 +458,58 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Collab Whiteboard
-            </h1>
-            
-            {/* Room Selection */}
-            <div className="flex items-center gap-4">
-              <select
-                value={selectedRoom}
-                onChange={(e) => setSelectedRoom(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-              >
-                {rooms.length === 0 ? (
-                  <option value="test">Loading rooms...</option>
-                ) : (
-                  rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name || room.id}
-                    </option>
-                  ))
-                )}
-              </select>
-              <button
-                onClick={loadRooms}
-                className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-              >
-                Load Rooms
-              </button>
+        <div className="w-full px-4 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Left Section - Title and Room Management */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Collab Whiteboard
+              </h1>
               
-              {/* Create Room */}
-              <div className="flex items-center gap-2">
+              {/* Room Selection and Management */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                <select
+                  value={selectedRoom}
+                  onChange={(e) => setSelectedRoom(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
+                >
+                  {rooms.length === 0 ? (
+                    <option value="test">Loading rooms...</option>
+                  ) : (
+                    rooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {room.name || room.id}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <button
+                  onClick={loadRooms}
+                  className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                >
+                  Load Rooms
+                </button>
+              </div>
+            </div>
+            
+            {/* Center Section - Create Room */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <input
                   type="text"
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder="New room name..."
-                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white min-w-[200px]"
                   onKeyPress={(e) => e.key === 'Enter' && createRoom()}
                 />
                 <button
                   onClick={createRoom}
                   disabled={!newRoomName.trim() || isCreatingRoom}
-                  className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                  className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 text-sm"
                 >
                   {isCreatingRoom ? 'Creating...' : 'Create Room'}
                 </button>
@@ -514,83 +519,89 @@ export default function Dashboard() {
               <button
                 onClick={deleteRoom}
                 disabled={selectedRoom === 'test' || isDeletingRoom}
-                className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+                className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 text-sm"
+                title={`Delete room: ${getRoomName(selectedRoom)}`}
               >
-                {isDeletingRoom ? 'Deleting...' : 'Delete Room'}
+                {isDeletingRoom ? 'Deleting...' : `Delete "${getRoomName(selectedRoom)}"`}
               </button>
             </div>
             
-            {/* Connection Status */}
-            <div className="flex items-center gap-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                connectionStatus === 'Connected' ? 'bg-green-100 text-green-800' :
-                connectionStatus === 'Connecting...' ? 'bg-yellow-100 text-yellow-800' :
-                connectionStatus === 'Error' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {connectionStatus === 'Connected' ? `🟢 ${getRoomName(selectedRoom)}` :
-                 connectionStatus === 'Connecting...' ? '🟡 Connecting...' :
-                 connectionStatus === 'Error' ? '🔴 Error' :
-                 '⚪ Disconnected'}
-              </span>
-              <button
-                onClick={() => {
-                  console.log('Connect clicked');
-                  connectWebSocket();
-                }}
-                disabled={isConnecting || connectionStatus === 'Connected'}
-                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:bg-gray-400"
-              >
-                Connect
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Disconnect clicked');
-                  disconnectWebSocket();
-                }}
-                disabled={!ws || ws.readyState === WebSocket.CLOSED}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:bg-gray-400"
-              >
-                Disconnect
-              </button>
-            </div>
-            
-            {/* Auth */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {user?.image && (
-                  <Image 
-                    src={user.image} 
-                    alt={user.name || 'User'} 
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-                <span className="text-sm font-medium text-gray-900">
-                  {user?.name || user?.email}
+            {/* Right Section - Connection and Auth */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              {/* Connection Status */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  connectionStatus === 'Connected' ? 'bg-green-100 text-green-800' :
+                  connectionStatus === 'Connecting...' ? 'bg-yellow-100 text-yellow-800' :
+                  connectionStatus === 'Error' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {connectionStatus === 'Connected' ? `🟢 ${getRoomName(selectedRoom)}` :
+                   connectionStatus === 'Connecting...' ? '🟡 Connecting...' :
+                   connectionStatus === 'Error' ? '🔴 Error' :
+                   '⚪ Disconnected'}
                 </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      console.log('Connect clicked');
+                      connectWebSocket();
+                    }}
+                    disabled={isConnecting || connectionStatus === 'Connected'}
+                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    Connect
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('Disconnect clicked');
+                      disconnectWebSocket();
+                    }}
+                    disabled={!ws || ws.readyState === WebSocket.CLOSED}
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:bg-gray-400"
+                  >
+                    Disconnect
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={signOut}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
+              
+              {/* Auth */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {user?.image && (
+                    <Image 
+                      src={user.image} 
+                      alt={user.name || 'User'} 
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <span className="text-sm font-medium text-gray-900 hidden sm:inline">
+                    {user?.name || user?.email}
+                  </span>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="w-full p-4 flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full">
           {/* Whiteboard */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow">
-            <div className="p-4 border-b">
+          <div className="xl:col-span-3 bg-white rounded-lg shadow flex flex-col">
+            <div className="p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Room: {getRoomName(selectedRoom)}</h2>
             </div>
-            <div className="h-[600px]">
+            <div className="flex-1 min-h-0">
               <TldrawCanvas
                 roomId={selectedRoom}
                 currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null}
@@ -600,18 +611,18 @@ export default function Dashboard() {
           </div>
 
           {/* Chat */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b">
+          <div className="bg-white rounded-lg shadow flex flex-col">
+            <div className="p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
             </div>
             
             {/* Online Users */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex-shrink-0">
               <OnlineUsers roomId={getRoomName(selectedRoom)} currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null} onlineUsers={onlineUsers} />
             </div>
             
             {/* Messages */}
-            <div className="p-4 h-96 overflow-y-auto">
+            <div className="p-4 flex-1 overflow-y-auto min-h-0">
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-500">
                   {connectionStatus === 'Connected' ? (
@@ -651,8 +662,8 @@ export default function Dashboard() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2 mb-2">
+            <div className="p-4 border-t flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-2 mb-2">
                 <input
                   type="text"
                   value={inputMessage}
@@ -665,7 +676,7 @@ export default function Dashboard() {
                 <button
                   onClick={sendChatMessage}
                   disabled={!ws || ws.readyState !== WebSocket.OPEN || !inputMessage.trim()}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 text-sm"
                 >
                   Send
                 </button>
