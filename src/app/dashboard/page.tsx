@@ -134,7 +134,6 @@ export default function Dashboard() {
   const { isAuthenticated, user, signOut } = useAuth();
   const router = useRouter();
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
-  const [messages, setMessages] = useState<string[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [ws, setWs] = useState<WebSocket | null>(null);
@@ -173,7 +172,6 @@ export default function Dashboard() {
         console.log('WebSocket connected!');
         setConnectionStatus('Connected');
         setIsConnecting(false);
-        setMessages(prev => [...prev, '✅ Connected to backend']);
         
         // Load existing messages when reconnecting
         if (selectedRoom && selectedRoom !== 'test') {
@@ -184,7 +182,6 @@ export default function Dashboard() {
     websocket.onmessage = (event) => {
       console.log('Received message:', event.data);
       const data = JSON.parse(event.data);
-      setMessages(prev => [...prev, `📨 Received: ${event.data}`]);
       
       // Debug: Log the structure of the data
       console.log('Parsed data structure:', JSON.stringify(data, null, 2));
@@ -280,15 +277,12 @@ export default function Dashboard() {
       setConnectionStatus('Disconnected');
       setIsConnecting(false);
       setWs(null);
-      
-      setMessages(prev => [...prev, `❌ Disconnected: ${event.code} - ${event.reason}`]);
     };
     
     websocket.onerror = (error) => {
       console.error('WebSocket error:', error);
       setConnectionStatus('Error');
       setIsConnecting(false);
-      setMessages(prev => [...prev, `🚨 Error: ${error}`]);
     };
     
     setWs(websocket);
@@ -309,7 +303,6 @@ export default function Dashboard() {
         message_type: 'text'
       };
       ws.send(JSON.stringify(message));
-      setMessages(prev => [...prev, `📤 Sent: ${JSON.stringify(message)}`]);
       setInputMessage('');
     }
   };
@@ -351,11 +344,9 @@ export default function Dashboard() {
       };
 
       ws.send(JSON.stringify(message));
-      setMessages(prev => [...prev, `📤 Sent file: ${file.name}`]);
 
     } catch (error) {
       console.error('Upload error:', error);
-      setMessages(prev => [...prev, `🚨 Upload failed: ${error}`]);
     } finally {
       setIsUploading(false);
       // Clear the input
@@ -396,7 +387,7 @@ export default function Dashboard() {
         const messagesData = await response.json();
         console.log(`Raw messages data:`, messagesData);
         
-        const formattedMessages: ChatMessage[] = messagesData.map((msg: any) => ({
+        const formattedMessages: ChatMessage[] = messagesData.map((msg: { username: string; content: string; file_url?: string; file_name?: string; file_type?: string; created_at: string }) => ({
           type: 'chat',
           username: msg.username,
           content: msg.content,
@@ -503,7 +494,6 @@ export default function Dashboard() {
     if (isAuthenticated && user && selectedRoom && selectedRoom !== 'test') {
       console.log('Room changed, loading messages for:', selectedRoom);
       setChatMessages([]);
-      setMessages([]);
       loadRoomMessages(selectedRoom);
     }
   }, [selectedRoom, isAuthenticated, user]);
