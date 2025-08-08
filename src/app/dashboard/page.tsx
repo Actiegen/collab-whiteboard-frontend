@@ -169,12 +169,17 @@ export default function Dashboard() {
     
     const websocket = new WebSocket(wsUrl);
     
-    websocket.onopen = () => {
-      console.log('WebSocket connected!');
-      setConnectionStatus('Connected');
-      setIsConnecting(false);
-      setMessages(prev => [...prev, '✅ Connected to backend']);
-    };
+          websocket.onopen = () => {
+        console.log('WebSocket connected!');
+        setConnectionStatus('Connected');
+        setIsConnecting(false);
+        setMessages(prev => [...prev, '✅ Connected to backend']);
+        
+        // Load existing messages when reconnecting
+        if (selectedRoom && selectedRoom !== 'test') {
+          loadRoomMessages(selectedRoom);
+        }
+      };
     
     websocket.onmessage = (event) => {
       console.log('Received message:', event.data);
@@ -224,6 +229,7 @@ export default function Dashboard() {
           console.log('Processing presence update:', data);
           // Handle presence updates (user online/offline)
           if (data.users) {
+            console.log('Setting online users:', data.users);
             setOnlineUsers(data.users);
           }
         } else if (data.type === 'user_joined') {
@@ -243,9 +249,25 @@ export default function Dashboard() {
               return [...prev, newUser];
             }
           });
+          
+          // Add system message for user joining
+          setChatMessages(prev => [...prev, {
+            type: 'system',
+            content: `👋 ${data.username} joined the room`,
+            timestamp: new Date().toISOString()
+          }]);
+          console.log('Added join message to chat');
         } else if (data.type === 'user_left') {
           console.log('User left:', data);
           setOnlineUsers(prev => prev.filter(u => u.user_id !== data.user_id));
+          
+          // Add system message for user leaving
+          setChatMessages(prev => [...prev, {
+            type: 'system',
+            content: `👋 ${data.username} left the room`,
+            timestamp: new Date().toISOString()
+          }]);
+          console.log('Added leave message to chat');
         } else {
           console.log('Unknown message type:', data.type);
         }
@@ -364,6 +386,46 @@ export default function Dashboard() {
     }
   };
 
+  const loadRoomMessages = async (roomId: string) => {
+    try {
+      console.log(`Loading messages for room: ${roomId}`);
+      const response = await fetch(`${config.apiUrl}/chat/rooms/${roomId}/messages?limit=50`);
+      console.log(`Response status: ${response.status}`);
+      
+      if (response.ok) {
+        const messagesData = await response.json();
+        console.log(`Raw messages data:`, messagesData);
+        
+        const formattedMessages: ChatMessage[] = messagesData.map((msg: any) => ({
+          type: 'chat',
+          username: msg.username,
+          content: msg.content,
+          file_url: msg.file_url,
+          file_name: msg.file_name,
+          file_type: msg.file_type,
+          timestamp: msg.created_at
+        }));
+        setChatMessages(formattedMessages);
+        console.log(`Loaded ${formattedMessages.length} messages for room ${roomId}`);
+        
+        // Add a test message if no messages were loaded
+        if (formattedMessages.length === 0) {
+          setChatMessages(prev => [...prev, {
+            type: 'system',
+            content: '📝 No previous messages found. Start the conversation!',
+            timestamp: new Date().toISOString()
+          }]);
+        }
+      } else {
+        console.error(`Failed to load messages: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Error response:`, errorText);
+      }
+    } catch (error) {
+      console.error('Failed to load room messages:', error);
+    }
+  };
+
   const createRoom = async () => {
     if (!newRoomName.trim() || !user?.email) return;
     
@@ -436,12 +498,13 @@ export default function Dashboard() {
     return room?.name || roomId;
   };
 
-  // Clear chat messages when room changes
+  // Load messages when room changes
   useEffect(() => {
     if (isAuthenticated && user && selectedRoom && selectedRoom !== 'test') {
-      console.log('Room changed, clearing messages');
+      console.log('Room changed, loading messages for:', selectedRoom);
       setChatMessages([]);
       setMessages([]);
+      loadRoomMessages(selectedRoom);
     }
   }, [selectedRoom, isAuthenticated, user]);
 
@@ -626,7 +689,15 @@ export default function Dashboard() {
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-500">
                   {connectionStatus === 'Connected' ? (
-                    <p className="text-sm">No messages yet. Start chatting!</p>
+                    <div className="space-y-2">
+                      <p className="text-sm">No messages yet. Start chatting!</p>
+                      <button
+                        onClick={() => loadRoomMessages(selectedRoom)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                      >
+                        Load Recent Messages
+                      </button>
+                    </div>
                   ) : connectionStatus === 'Connecting...' ? (
                     <p className="text-sm">🟡 Connecting to room...</p>
                   ) : (
