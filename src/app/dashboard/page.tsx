@@ -93,8 +93,10 @@ const FilePreview = ({ fileUrl, fileName, fileType }: {
                 height={128}
                 className="max-w-full max-h-32 rounded border object-cover"
                 onError={(e) => {
+                  console.error('Image failed to load:', fileUrl);
                   e.currentTarget.style.display = 'none';
                 }}
+                unoptimized={true}
               />
             </div>
           )}
