@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { OnlineUsers } from '@/components/chat/OnlineUsers';
 import { TldrawCanvas } from '@/components/whiteboard/TldrawCanvas';
+import { config } from '@/lib/config';
 
 // TypeScript interfaces
 interface ChatMessage {
@@ -142,6 +143,9 @@ export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -158,7 +162,7 @@ export default function Dashboard() {
     
     setIsConnecting(true);
     const userId = user.email || '975fb39b-a6b1-4a93-a093-bcd380125d85';
-    const wsUrl = `wss://collab-whiteboard-backend-570131883677.us-east1.run.app/ws/${selectedRoom}/${userId}`;
+    const wsUrl = `${config.wsUrl}/ws/${selectedRoom}/${userId}`;
     
     console.log('Connecting to:', wsUrl);
     setConnectionStatus('Connecting...');
@@ -301,7 +305,7 @@ export default function Dashboard() {
       formData.append('room_id', selectedRoom);
 
       // Upload file
-      const response = await fetch('https://collab-whiteboard-backend-570131883677.us-east1.run.app/api/v1/files/upload', {
+      const response = await fetch(`${config.apiUrl}/files/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -347,7 +351,7 @@ export default function Dashboard() {
 
   const loadRooms = async () => {
     try {
-      const response = await fetch('https://collab-whiteboard-backend-570131883677.us-east1.run.app/api/v1/chat/rooms/');
+      const response = await fetch(`${config.apiUrl}/chat/rooms/`);
       if (response.ok) {
         const roomsData = await response.json();
         setRooms(roomsData);
@@ -357,6 +361,67 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Failed to load rooms:', error);
+    }
+  };
+
+  const createRoom = async () => {
+    if (!newRoomName.trim() || !user?.email) return;
+    
+    setIsCreatingRoom(true);
+    try {
+      const response = await fetch(`${config.apiUrl}/chat/rooms/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newRoomName.trim(),
+          created_by: user.email
+        }),
+      });
+
+      if (response.ok) {
+        const newRoom = await response.json();
+        setRooms(prev => [...prev, newRoom]);
+        setSelectedRoom(newRoom.id);
+        setNewRoomName('');
+        console.log('Room created successfully:', newRoom);
+      } else {
+        console.error('Failed to create room:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error creating room:', error);
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
+
+  const deleteRoom = async () => {
+    if (!selectedRoom || selectedRoom === 'test') return;
+    
+    setIsDeletingRoom(true);
+    try {
+      const response = await fetch(`${config.apiUrl}/chat/rooms/${selectedRoom}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setRooms(prev => prev.filter(room => room.id !== selectedRoom));
+        // Select the first available room or set to 'test'
+        const remainingRooms = rooms.filter(room => room.id !== selectedRoom);
+        if (remainingRooms.length > 0) {
+          setSelectedRoom(remainingRooms[0].id);
+        } else {
+          setSelectedRoom('test');
+        }
+        console.log('Room deleted successfully');
+      } else {
+        console.error('Failed to delete room:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error deleting room:', error);
+    } finally {
+      setIsDeletingRoom(false);
     }
   };
 
@@ -424,6 +489,34 @@ export default function Dashboard() {
                 className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
                 Load Rooms
+              </button>
+              
+              {/* Create Room */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  placeholder="New room name..."
+                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  onKeyPress={(e) => e.key === 'Enter' && createRoom()}
+                />
+                <button
+                  onClick={createRoom}
+                  disabled={!newRoomName.trim() || isCreatingRoom}
+                  className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                >
+                  {isCreatingRoom ? 'Creating...' : 'Create Room'}
+                </button>
+              </div>
+              
+              {/* Delete Room */}
+              <button
+                onClick={deleteRoom}
+                disabled={selectedRoom === 'test' || isDeletingRoom}
+                className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+              >
+                {isDeletingRoom ? 'Deleting...' : 'Delete Room'}
               </button>
             </div>
             
