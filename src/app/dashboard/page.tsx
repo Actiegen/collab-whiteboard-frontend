@@ -365,6 +365,12 @@ export default function Dashboard() {
     loadRooms();
   }, []);
 
+  // Helper function to get room name by ID
+  const getRoomName = (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    return room?.name || roomId;
+  };
+
   // Clear chat messages when room changes
   useEffect(() => {
     if (isAuthenticated && user && selectedRoom && selectedRoom !== 'test') {
@@ -429,7 +435,7 @@ export default function Dashboard() {
                 connectionStatus === 'Error' ? 'bg-red-100 text-red-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
-                {connectionStatus === 'Connected' ? `🟢 ${selectedRoom}` :
+                {connectionStatus === 'Connected' ? `🟢 ${getRoomName(selectedRoom)}` :
                  connectionStatus === 'Connecting...' ? '🟡 Connecting...' :
                  connectionStatus === 'Error' ? '🔴 Error' :
                  '⚪ Disconnected'}
@@ -489,7 +495,7 @@ export default function Dashboard() {
           {/* Whiteboard */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow">
             <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Room: {selectedRoom}</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Room: {getRoomName(selectedRoom)}</h2>
             </div>
             <div className="h-[600px]">
               <TldrawCanvas
@@ -508,7 +514,7 @@ export default function Dashboard() {
             
             {/* Online Users */}
             <div className="p-4 border-b">
-              <OnlineUsers roomId={selectedRoom} currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null} onlineUsers={onlineUsers} />
+              <OnlineUsers roomId={getRoomName(selectedRoom)} currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null} onlineUsers={onlineUsers} />
             </div>
             
             {/* Messages */}
@@ -598,23 +604,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Debug Log */}
-        <div className="bg-white rounded-lg shadow p-4 mt-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Debug Log</h2>
-          <div className="bg-gray-50 rounded p-4 h-32 overflow-y-auto">
-            {messages.length === 0 ? (
-              <p className="text-gray-600 text-sm">No debug messages yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {messages.map((message, index) => (
-                  <div key={`debug-${index}`} className="text-xs font-mono text-gray-800">
-                    {message}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+
       </div>
     </div>
   );
