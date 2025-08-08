@@ -2,6 +2,17 @@
 
 A real-time collaborative whiteboard application with chat, file sharing, and Google Authentication. Built with Next.js 14, TypeScript, Tailwind CSS, and integrated with Google Cloud services.
 
+---
+
+> ⚠️ **Disclaimer**  
+> This project is **not intended for production use by companies**.
+>
+> It must contain security breaches
+>  
+> The main purpose of this repository is **educational**, focused on the features and structure below.
+
+---
+
 ## ✨ Features
 
 - **🎨 Real-time Collaborative Whiteboard**: Draw, sketch, and collaborate using [tldraw](https://tldraw.dev/)
@@ -190,26 +201,6 @@ The backend API is hosted in a separate repository:
 - WebSocket real-time communication
 - Deployed on Google Cloud Run
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-If you encounter any issues:
-
-1. Check the [Issues](https://github.com/Actiegen/collab-whiteboard-frontend/issues) page
-2. Review the [DEPLOYMENT.md](DEPLOYMENT.md) guide
-3. Ensure all environment variables are properly configured
-4. Verify Google OAuth settings match your deployment URLs
 
 ## 🎯 Roadmap
 
