@@ -204,7 +204,8 @@ The backend API is hosted in a separate repository:
 
 ## 🎯 Roadmap
 
-- [ ] Fix file sharing preview
+- [ ] Fix join chat broadcast message
 - [ ] Implement room permissions and access control
 - [ ] Implement user profiles and avatars
 - [ ] Add export/import functionality for whiteboards
+- [ ] Implement system authentication with backend
