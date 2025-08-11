@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { OnlineUsers } from '@/components/chat/OnlineUsers';
-import { TldrawCanvas } from '@/components/whiteboard/TldrawCanvas';
+import DynamicKonvaWhiteboard from '@/components/whiteboard/DynamicKonvaWhiteboard';
 import { config } from '@/lib/config';
 
 // TypeScript interfaces
@@ -648,14 +648,14 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="w-full p-4 flex-1 overflow-hidden">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-full max-w-full">
           {/* Whiteboard */}
-          <div className="xl:col-span-3 bg-white rounded-lg shadow flex flex-col">
+          <div className="xl:col-span-3 bg-white rounded-lg shadow flex flex-col min-w-0 overflow-hidden">
             <div className="p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Room: {getRoomName(selectedRoom)}</h2>
             </div>
-            <div className="flex-1 min-h-0">
-              <TldrawCanvas
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <DynamicKonvaWhiteboard
                 roomId={selectedRoom}
                 currentUser={user ? { email: user.email || undefined, name: user.name || undefined } : null}
                 isConnected={connectionStatus === 'Connected'}
@@ -664,7 +664,7 @@ export default function Dashboard() {
           </div>
 
           {/* Chat */}
-          <div className="bg-white rounded-lg shadow flex flex-col">
+          <div className="bg-white rounded-lg shadow flex flex-col min-w-0 overflow-hidden">
             <div className="p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
             </div>
@@ -724,46 +724,48 @@ export default function Dashboard() {
 
             {/* Input */}
             <div className="p-4 border-t flex-shrink-0">
-              <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type a message..."
-                  disabled={!ws || ws.readyState !== WebSocket.OPEN}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                />
-                <button
-                  onClick={sendChatMessage}
-                  disabled={!ws || ws.readyState !== WebSocket.OPEN || !inputMessage.trim()}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 text-sm"
-                >
-                  Send
-                </button>
-              </div>
-              
-              {/* File Upload */}
-              <div className="flex items-center gap-2">
-                <label className="cursor-pointer">
+              <div className="flex flex-col gap-2 mb-2">
+                <div className="flex gap-2">
                   <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    disabled={!ws || ws.readyState !== WebSocket.OPEN || isUploading}
-                    className="hidden"
-                    accept="image/*,application/pdf,text/plain,.doc,.docx"
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type a message..."
+                    disabled={!ws || ws.readyState !== WebSocket.OPEN}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 min-w-0"
                   />
-                  <span className={`px-3 py-2 text-sm rounded border ${
-                    !ws || ws.readyState !== WebSocket.OPEN || isUploading
-                      ? 'bg-gray-100 text-gray-400 border-gray-200'
-                      : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
-                  }`}>
-                    {isUploading ? '📤 Uploading...' : '📎 Attach File'}
-                  </span>
-                </label>
-                {isUploading && (
-                  <span className="text-sm text-gray-500">Uploading...</span>
-                )}
+                  <button
+                    onClick={sendChatMessage}
+                    disabled={!ws || ws.readyState !== WebSocket.OPEN || !inputMessage.trim()}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
+                  >
+                    Send
+                  </button>
+                </div>
+                
+                {/* File Upload */}
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={!ws || ws.readyState !== WebSocket.OPEN || isUploading}
+                      className="hidden"
+                      accept="image/*,application/pdf,text/plain,.doc,.docx"
+                    />
+                    <span className={`inline-block px-3 py-2 text-sm rounded border ${
+                      !ws || ws.readyState !== WebSocket.OPEN || isUploading
+                        ? 'bg-gray-100 text-gray-400 border-gray-200'
+                        : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+                    }`}>
+                      {isUploading ? '📤 Uploading...' : '📎 Attach File'}
+                    </span>
+                  </label>
+                  {isUploading && (
+                    <span className="text-sm text-gray-500">Uploading...</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
