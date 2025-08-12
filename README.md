@@ -1,6 +1,6 @@
 # 🎨 Collab Whiteboard
 
-A real-time collaborative whiteboard application with chat, file sharing, and Google Authentication. Built with Next.js 14, TypeScript, Tailwind CSS, and integrated with Google Cloud services.
+A real-time collaborative whiteboard application with chat, file sharing, and Google Authentication. Built with Next.js 15, TypeScript, Tailwind CSS, and a custom HTML5 Canvas whiteboard integrated with Google Cloud services.
 
 ---
 
@@ -15,7 +15,7 @@ A real-time collaborative whiteboard application with chat, file sharing, and Go
 
 ## ✨ Features
 
-- **🎨 Real-time Collaborative Whiteboard**: Draw, sketch, and collaborate using [tldraw](https://tldraw.dev/)
+- **🎨 Real-time Collaborative Whiteboard**: Draw, sketch, and collaborate using a custom HTML5 Canvas implementation
 - **💬 Live Chat**: Real-time messaging with file upload support
 - **📁 File Sharing**: Upload and preview files in chat
 - **👥 User Presence**: See who's online in each room
@@ -26,11 +26,11 @@ A real-time collaborative whiteboard application with chat, file sharing, and Go
 ## 🏗️ Architecture
 
 ### Frontend (This Repository)
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Authentication**: NextAuth.js with Google OAuth
-- **Whiteboard**: tldraw with real-time sync
+- **Whiteboard**: Custom HTML5 Canvas with real-time collaboration
 - **State Management**: React Hooks
 - **Deployment**: Vercel
 
@@ -154,11 +154,11 @@ npm run lint         # Run ESLint
 
 ### Key Technologies
 
-- **[Next.js 14](https://nextjs.org/)**: React framework with App Router
+- **[Next.js 15](https://nextjs.org/)**: React framework with App Router
 - **[TypeScript](https://www.typescriptlang.org/)**: Type-safe JavaScript
 - **[Tailwind CSS](https://tailwindcss.com/)**: Utility-first CSS framework
 - **[NextAuth.js](https://next-auth.js.org/)**: Authentication for Next.js
-- **[tldraw](https://tldraw.dev/)**: Collaborative whiteboard library
+- **[HTML5 Canvas](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)**: Custom whiteboard implementation
 - **[WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)**: Real-time communication
 
 ## 🚀 Deployment
@@ -207,5 +207,9 @@ The backend API is hosted in a separate repository:
 - [ ] Fix join chat broadcast message
 - [ ] Implement room permissions and access control
 - [ ] Implement user profiles and avatars
-- [ ] Add export/import functionality for whiteboards
+- [ ] Add export/import functionality for whiteboards (PNG/SVG export)
 - [ ] Implement system authentication with backend
+- [ ] Add more drawing tools (shapes, text, arrows)
+- [ ] Implement layers and z-index management
+- [ ] Add undo/redo functionality
+- [ ] Implement touch gesture support for mobile devices
