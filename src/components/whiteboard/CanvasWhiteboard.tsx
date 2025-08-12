@@ -50,7 +50,7 @@ export function CanvasWhiteboard({ roomId, currentUser, isConnected }: CanvasWhi
     if (!isMounted || !isConnected || !roomId) return;
 
     // WebSocket URL for collaboration
-    const wsUrl = (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000').replace('wss://', 'ws://').replace('https://', 'ws://');
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
     const websocket = new WebSocket(`${wsUrl}/yjs/${roomId}`);
 
     websocket.onopen = () => {
