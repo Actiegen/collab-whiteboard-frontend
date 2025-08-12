@@ -186,7 +186,7 @@ export function CanvasWhiteboard({ roomId, currentUser, isConnected }: CanvasWhi
   }, [strokes, currentStroke, isDrawing, tool]);
 
   // Drawing handlers
-  const getMousePos = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getMousePos = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
@@ -249,12 +249,21 @@ export function CanvasWhiteboard({ roomId, currentUser, isConnected }: CanvasWhi
 
   // Compatibility handlers for mouse events
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    handlePointerDown(e as any);
-  }, [handlePointerDown]);
+    if (!isConnected) return;
+
+    e.preventDefault();
+    setIsDrawing(true);
+    const pos = getMousePos(e);
+    setCurrentStroke([pos]);
+  }, [isConnected, getMousePos]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    handlePointerMove(e as any);
-  }, [handlePointerMove]);
+    if (!isDrawing) return;
+
+    e.preventDefault();
+    const pos = getMousePos(e);
+    setCurrentStroke(prev => [...prev, pos]);
+  }, [isDrawing, getMousePos]);
 
   const handleMouseUp = useCallback(() => {
     handlePointerUp();
@@ -361,10 +370,10 @@ export function CanvasWhiteboard({ roomId, currentUser, isConnected }: CanvasWhi
           <select
             value={tool.size}
             onChange={(e) => setTool(prev => ({ ...prev, size: parseInt(e.target.value) }))}
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
+            className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 bg-white"
           >
             {sizes.map(size => (
-              <option key={size} value={size}>{size}px</option>
+              <option key={size} value={size} className="text-gray-900">{size}px</option>
             ))}
           </select>
         </div>
