@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { OnlineUsers } from '@/components/chat/OnlineUsers';
+import { SecureFilePreview } from '@/components/files/SecureFilePreview';
 import DynamicKonvaWhiteboard from '@/components/whiteboard/DynamicKonvaWhiteboard';
 import { config } from '@/lib/config';
 
@@ -13,7 +14,8 @@ interface ChatMessage {
   type: 'chat' | 'system';
   username?: string;
   content: string;
-  file_url?: string;
+  file_id?: string;      // New: for secure file access
+  file_url?: string;     // Keep for backward compatibility
   file_name?: string;
   file_type?: string;
   timestamp: string;
@@ -31,104 +33,6 @@ interface Room {
   name: string;
   created_at: string;
 }
-
-// File Preview Component
-const FilePreview = ({ fileUrl, fileName, fileType }: { 
-  fileUrl: string; 
-  fileName: string; 
-  fileType: string; 
-}) => {
-  console.log('FilePreview component called with:', { fileUrl, fileName, fileType });
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('text')) return '📝';
-    if (type.includes('word') || type.includes('document')) return '📄';
-    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
-    if (type.includes('powerpoint') || type.includes('presentation')) return '📊';
-    return '📎';
-  };
-
-  const isImage = fileType.startsWith('image/');
-  const isPdf = fileType.includes('pdf');
-  const isText = fileType.includes('text');
-
-  return (
-    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-      <div className="flex items-start gap-3">
-        {/* File Icon */}
-        <div className="text-2xl flex-shrink-0">
-          {getFileIcon(fileType)}
-        </div>
-        
-        {/* File Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {fileName}
-              </p>
-              <p className="text-xs text-gray-500">
-                {fileType}
-              </p>
-            </div>
-            
-            {/* Download Button */}
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Download
-            </a>
-          </div>
-          
-          {/* Preview */}
-          {isImage && (
-            <div className="mt-2">
-              <Image 
-                src={fileUrl} 
-                alt={fileName}
-                width={200}
-                height={128}
-                className="max-w-full max-h-32 rounded border object-cover"
-                onError={(e) => {
-                  console.error('Image failed to load:', fileUrl);
-                  e.currentTarget.style.display = 'none';
-                }}
-                unoptimized={true}
-              />
-            </div>
-          )}
-          
-          {isPdf && (
-            <div className="mt-2">
-              <iframe
-                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="w-full h-32 border rounded"
-                title={fileName}
-              />
-            </div>
-          )}
-          
-          {isText && (
-            <div className="mt-2">
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:text-blue-800 underline"
-              >
-                View text content
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function Dashboard() {
   const { isAuthenticated, user, signOut } = useAuth();
@@ -193,12 +97,13 @@ export default function Dashboard() {
           content: data.message,
           timestamp: new Date().toISOString()
         }]);
-              } else if (data.type === 'chat_message') {
+        } else if (data.type === 'chat_message') {
           console.log('Processing chat message:', data);
           const newMessage: ChatMessage = {
             type: 'chat',
             username: data.message?.username || data.username,
             content: data.message?.content || data.content,
+            file_id: data.message?.file_id,     // New: include file_id
             file_url: data.message?.file_url,
             file_name: data.message?.file_name,
             file_type: data.message?.file_type,
@@ -207,8 +112,9 @@ export default function Dashboard() {
           console.log('Created new message object:', newMessage);
           
           // Debug: Check if file data exists
-          if (newMessage.file_url) {
+          if (newMessage.file_url || newMessage.file_id) {
             console.log('✅ File data found in message:', {
+              file_id: newMessage.file_id,
               file_url: newMessage.file_url,
               file_name: newMessage.file_name,
               file_type: newMessage.file_type
@@ -337,7 +243,8 @@ export default function Dashboard() {
         type: 'chat_message',
         content: `📎 ${file.name}`,
         message_type: 'file',
-        file_url: fileData.download_url,
+        file_id: fileData.id,           // New: include file_id for secure access
+        file_url: fileData.download_url, // Keep for backward compatibility
         file_name: file.name,
         file_type: file.type,
         username: user.name || user.email || 'Anonymous'
@@ -387,10 +294,11 @@ export default function Dashboard() {
         const messagesData = await response.json();
         console.log(`Raw messages data:`, messagesData);
         
-        const formattedMessages: ChatMessage[] = messagesData.map((msg: { username: string; content: string; file_url?: string; file_name?: string; file_type?: string; created_at: string }) => ({
+        const formattedMessages: ChatMessage[] = messagesData.map((msg: { username: string; content: string; file_id?: string; file_url?: string; file_name?: string; file_type?: string; created_at: string }) => ({
           type: 'chat',
           username: msg.username,
           content: msg.content,
+          file_id: msg.file_id,     // New: include file_id from stored messages
           file_url: msg.file_url,
           file_name: msg.file_name,
           file_type: msg.file_type,
@@ -705,12 +613,13 @@ export default function Dashboard() {
                       ) : (
                         <div>
                           <span><strong>{message.username}:</strong> {message.content}</span>
-                          {message.file_url && message.file_name && message.file_type && (
+                          {(message.file_id || message.file_url) && message.file_name && message.file_type && (
                             <div className="mt-2 ml-4">
-                              <FilePreview 
-                                fileUrl={message.file_url}
+                              <SecureFilePreview 
+                                fileId={message.file_id || 'unknown'}
                                 fileName={message.file_name}
                                 fileType={message.file_type}
+                                initialUrl={message.file_url}
                               />
                             </div>
                           )}
